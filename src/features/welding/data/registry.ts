@@ -17,7 +17,6 @@ export function createRegistry(sources: readonly WeldingRecordSource[]): RecordR
     throw new Error(`Invalid welding reference data:\n${errors.join('\n')}`);
   }
   const all = sources.map(normalizeRecord);
-  // Cached so callers get a stable array reference (safe as a React memo dependency).
   const byProcess = new Map<WeldingProcess, readonly WeldingRecord[]>();
 
   return {
@@ -34,6 +33,18 @@ export function createRegistry(sources: readonly WeldingRecordSource[]): RecordR
   };
 }
 
-export const ALL_RECORD_SOURCES: readonly WeldingRecordSource[] = [...gmawRecords, ...gmawSampleRecords];
+/**
+ * Production source list. Keep this export limited to records intended for release.
+ * The production-data test fails if anything here is unverified.
+ */
+export const VERIFIED_RECORD_SOURCES: readonly WeldingRecordSource[] = [...gmawRecords];
+
+/**
+ * Vite replaces import.meta.env.PROD at build time. Sample data is available only in development/test builds.
+ * Production runtime data is built exclusively from VERIFIED_RECORD_SOURCES.
+ */
+export const ALL_RECORD_SOURCES: readonly WeldingRecordSource[] = import.meta.env.PROD
+  ? VERIFIED_RECORD_SOURCES
+  : [...VERIFIED_RECORD_SOURCES, ...gmawSampleRecords];
 
 export const registry: RecordRegistry = createRegistry(ALL_RECORD_SOURCES);

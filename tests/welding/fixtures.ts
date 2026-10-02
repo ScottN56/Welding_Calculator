@@ -18,6 +18,7 @@ export function gmawSource(overrides: Partial<GmawRecordSource> = {}): GmawRecor
     thickness: { min: 2, max: 3, unit: 'mm' },
     joints: 'all',
     positions: 'all',
+    interpolation: { allowed: true, rationale: 'Unit-test fixture explicitly allows interpolation.' },
     wireClass: 'WIRE-A',
     wireDiameter: { value: 0.9, unit: 'mm' },
     gas: 'ar75-co2-25',

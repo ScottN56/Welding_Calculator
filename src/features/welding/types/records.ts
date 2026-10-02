@@ -17,6 +17,15 @@ import type { FlowUnit, LengthUnit, Measured, MeasuredRange, Range, WireFeedUnit
 
 export type Applicability<T> = readonly T[] | 'all';
 
+/**
+ * Interpolation is opt-in. A missing policy is normalized to allowed=false.
+ * This prevents a new verified table from being interpolated unless its source data explicitly permits it.
+ */
+export interface InterpolationPolicy {
+  readonly allowed: boolean;
+  readonly rationale?: string;
+}
+
 interface RecordSourceBase {
   readonly id: string;
   readonly material: BaseMaterial;
@@ -24,6 +33,7 @@ interface RecordSourceBase {
   readonly joints: Applicability<JointType>;
   readonly positions: Applicability<WeldPosition>;
   readonly passes?: Range;
+  readonly interpolation?: InterpolationPolicy;
   readonly notes?: readonly string[];
   readonly provenance: Provenance;
 }
@@ -92,6 +102,7 @@ interface NormalizedRecordBase {
   readonly joints: Applicability<JointType>;
   readonly positions: Applicability<WeldPosition>;
   readonly passes: Range | undefined;
+  readonly interpolation: InterpolationPolicy;
   readonly notes: readonly string[];
   readonly provenance: Provenance;
 }
