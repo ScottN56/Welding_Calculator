@@ -1,7 +1,8 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const DIST = new URL('../dist/', import.meta.url);
+const DIST = fileURLToPath(new URL('../dist/', import.meta.url));
 const TEXT_EXTENSIONS = new Set(['.html', '.js', '.css', '.json', '.map', '.txt']);
 const FORBIDDEN_MARKERS = [
   'SAMPLE / UNVERIFIED DATA',
