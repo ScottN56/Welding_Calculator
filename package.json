@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run typecheck && npm run verify:production-data && vite build",
+    "build": "npm run typecheck && npm run verify:production-data && vite build && npm run verify:production-bundle",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
     "test": "vitest run",
@@ -14,7 +14,8 @@
     "cap:sync": "npm run build && cap sync",
     "cap:open:ios": "cap open ios",
     "cap:open:android": "cap open android",
-    "verify:production-data": "vitest run tests/welding/productionData.test.ts"
+    "verify:production-data": "vitest run tests/welding/productionData.test.ts",
+    "verify:production-bundle": "node scripts/verify-production-bundle.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
