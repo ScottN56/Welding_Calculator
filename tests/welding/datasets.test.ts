@@ -44,6 +44,8 @@ describe('verified reference datasets', () => {
   });
 
   it('can apply an explicitly declared dataset interpolation policy', () => {
+    const withInterpolation = draft({ id: 'a' });
+    const { interpolation: _interpolation, ...withoutInterpolation } = withInterpolation;
     const dataset = defineVerifiedDataset<GmawRecordSource>(
       {
         ...metadata,
@@ -52,7 +54,7 @@ describe('verified reference datasets', () => {
           rationale: 'Test-only policy.',
         },
       },
-      [draft({ id: 'a', interpolation: undefined })],
+      [withoutInterpolation],
     );
 
     expect(dataset.records[0]?.interpolation).toEqual({
