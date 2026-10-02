@@ -153,6 +153,22 @@ export function recommend<R extends WeldingRecord>(
           warnings: [],
         };
       }
+      if (!lower.interpolation.allowed || !upper.interpolation.allowed) {
+        const blocked = [lower, upper]
+          .filter((record) => !record.interpolation.allowed)
+          .map((record) => record.id)
+          .join(', ');
+        return {
+          status: 'gap',
+          lower,
+          upper,
+          explanation: [
+            `${tLabel} falls between data ranges ${range(lower)} and ${range(upper)}.`,
+            `Interpolation is not explicitly permitted by the reference data${blocked ? ` (blocked by: ${blocked})` : ''}.`,
+          ],
+          warnings: [],
+        };
+      }
       const values = interpolateRecords(definition, lower, upper, t);
       const percent = Math.round(((t - lower.thicknessMm.max) / (upper.thicknessMm.min - lower.thicknessMm.max)) * 100);
       return {
