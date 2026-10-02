@@ -96,6 +96,16 @@ describe('recommend: interpolation', () => {
     expect(result.status === 'interpolated' && result.values.amperage).toBeUndefined();
   });
 
+  it('does not interpolate unless both neighboring records explicitly allow it', () => {
+    const records = [
+      gmaw({ id: 'a', thickness: { min: 2, max: 3, unit: 'mm' }, interpolation: { allowed: false } }),
+      gmaw({ id: 'b', thickness: { min: 5, max: 6, unit: 'mm' }, interpolation: { allowed: true } }),
+    ];
+    const result = recommend(gmawDefinition, records, input({ thicknessMm: 4 }), METRIC);
+    expect(result.status).toBe('gap');
+    expect(result.explanation.join(' ')).toMatch(/not explicitly permitted/i);
+  });
+
   it('does not interpolate across different transfer modes', () => {
     const records = [
       gmaw({ id: 'sc', thickness: { min: 2, max: 3, unit: 'mm' }, transferMode: 'short-circuit' }),
