@@ -5,10 +5,11 @@ import react from '@vitejs/plugin-react';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    __WELDING_INCLUDE_SAMPLE_DATA__: JSON.stringify(command === 'serve'),
   },
   // Relative asset paths are required when the build is served from the Capacitor WebView.
   base: './',
@@ -20,4 +21,4 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     environment: 'node',
   },
-});
+}));

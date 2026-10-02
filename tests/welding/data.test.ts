@@ -1,10 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_RECORD_SOURCES, createRegistry, registry } from '../../src/features/welding/data/registry';
+import {
+  ALL_RECORD_SOURCES,
+  assertVerifiedProductionRecords,
+  createRegistry,
+  registry,
+  VERIFIED_DATASETS,
+} from '../../src/features/welding/data/registry';
+import { defineVerifiedDataset } from '../../src/features/welding/data/datasets';
 import { gmawSampleRecords } from '../../src/features/welding/data/sample/gmawSample';
+import { fcawRecords } from '../../src/features/welding/data/records/fcaw';
+import { gtawRecords } from '../../src/features/welding/data/records/gtaw';
 import { validateRecordSource, validateRecordSources } from '../../src/features/welding/data/validate';
 import { normalizeRecord } from '../../src/features/welding/data/normalize';
-import type { GmawRecord } from '../../src/features/welding/types';
+import type { GmawRecord, GmawRecordSource } from '../../src/features/welding/types';
 import { gmawSource } from './fixtures';
+
+function verifiedGmawDataset(recordOverrides: Partial<GmawRecordSource> = {}) {
+  const { provenance, ...draft } = gmawSource(recordOverrides);
+  void provenance;
+  return defineVerifiedDataset<GmawRecordSource>(
+    {
+      id: 'verified-gmaw-test',
+      process: 'GMAW',
+      source: { publisher: 'Test Publisher', document: 'Test Reference' },
+      verifiedBy: 'Test Reviewer',
+      verifiedDate: '2026-10-01',
+    },
+    [draft],
+  );
+}
 
 describe('record validation', () => {
   it('accepts a valid record', () => {
@@ -35,6 +59,53 @@ describe('record validation', () => {
   it('createRegistry throws on invalid data', () => {
     expect(() => createRegistry([gmawSource({ voltage: { min: 5, max: 1 } })])).toThrow(/Invalid welding reference data/);
   });
+
+  it('checks dataset structure and individual records in a production registry', () => {
+    const dataset = verifiedGmawDataset();
+    expect(() =>
+      createRegistry(dataset.records, {
+        requireVerified: true,
+        verifiedDatasets: [dataset],
+      }),
+    ).not.toThrow();
+
+    const missingPublisher = {
+      ...dataset,
+      metadata: {
+        ...dataset.metadata,
+        source: { ...dataset.metadata.source, publisher: '' },
+      },
+    };
+    expect(() =>
+      createRegistry(dataset.records, {
+        requireVerified: true,
+        verifiedDatasets: [missingPublisher],
+      }),
+    ).toThrow(/Invalid verified welding datasets:.*publisher is required/s);
+
+    const invalidRecordDataset = verifiedGmawDataset({ voltage: { min: 20, max: 10 } });
+    expect(() =>
+      createRegistry(invalidRecordDataset.records, {
+        requireVerified: true,
+        verifiedDatasets: [invalidRecordDataset],
+      }),
+    ).toThrow(/Invalid welding reference data/);
+
+    const detachedRecords = verifiedGmawDataset({ id: 'detached-record' }).records;
+    expect(() =>
+      createRegistry(detachedRecords, {
+        requireVerified: true,
+        verifiedDatasets: [dataset],
+      }),
+    ).toThrow(/must come from the validated verified datasets/);
+  });
+
+  it('rejects unverified records in a production registry with record ids', () => {
+    expect(() => createRegistry(gmawSampleRecords, { requireVerified: true, verifiedDatasets: [] })).toThrow(
+      /Production welding data contains unverified records: sample-gmaw-cs-035-c25-a/,
+    );
+    expect(() => assertVerifiedProductionRecords(gmawSampleRecords)).toThrow(/unverified records/);
+  });
 });
 
 describe('normalization to canonical units', () => {
@@ -63,7 +134,19 @@ describe('normalization to canonical units', () => {
 describe('bundled data', () => {
   it('loads and validates', () => {
     expect(validateRecordSources(ALL_RECORD_SOURCES)).toEqual([]);
+    expect(VERIFIED_DATASETS.every((dataset) => !dataset.metadata.id.startsWith('replace-with-'))).toBe(true);
     expect(registry.forProcess('GMAW').length).toBe(ALL_RECORD_SOURCES.filter((r) => r.process === 'GMAW').length);
+    expect(registry.forProcess('FCAW')).toEqual(fcawRecords);
+    expect(registry.hasVerifiedData('FCAW')).toBe(false);
+    expect(registry.forProcess('GTAW')).toEqual(gtawRecords);
+    expect(registry.hasVerifiedData('GTAW')).toBe(false);
+    expect(registry.forProcess('SMAW')).toEqual([]);
+    expect(registry.hasVerifiedData('SMAW')).toBe(false);
+  });
+
+  it('keeps sample records available in the development/test registry', () => {
+    expect(ALL_RECORD_SOURCES.some((record) => record.id.startsWith('sample-gmaw-'))).toBe(true);
+    expect(registry.forProcess('GMAW').some((record) => record.id.startsWith('sample-gmaw-'))).toBe(true);
   });
 
   it('marks every sample record as unverified', () => {

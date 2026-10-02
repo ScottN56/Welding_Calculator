@@ -1,6 +1,8 @@
 import type { BaseMaterial, JointType, WeldingProcess, WeldPosition } from './common';
 import type { WeldingRecord } from './records';
 import type { Range, UnitSystem } from './units';
+import type { MachineProfile } from '../../machine-profiles/types';
+import type { MachineSpecificSetting } from '../../machine-profiles/machineSpecific';
 
 /** Sentinel for an optional consumable selection meaning "no preference". */
 export const ANY_OPTION = 'any';
@@ -12,6 +14,8 @@ export interface CalculatorInput {
   readonly thicknessMm: number;
   readonly joint: JointType;
   readonly position: WeldPosition;
+  /** Optional exact manufacturer machine profile; absent means generic/no machine selected. */
+  readonly machineProfileId?: string | null;
   /** Keyed by the process definition's consumable field keys; values are canonical option keys. */
   readonly consumable: Readonly<Record<string, string>>;
 }
@@ -19,6 +23,8 @@ export interface CalculatorInput {
 export interface RecommendOptions {
   readonly unitSystem: UnitSystem;
   readonly includeUnverified: boolean;
+  readonly machineProfiles?: readonly MachineProfile[];
+  readonly machineSpecificSettings?: readonly MachineSpecificSetting[];
 }
 
 export type DataQuality = 'verified' | 'unverified';
@@ -62,9 +68,16 @@ export type FilterStage = 'process' | 'verification' | 'material' | 'joint' | 'p
 
 export interface RecommendationUnsupported extends ResultMessages {
   readonly status: 'unsupported';
-  readonly stage: FilterStage;
+  readonly stage: FilterStage | 'machine-profile';
   /** Consumable field key when stage === 'consumable'. */
   readonly field?: string;
+}
+
+export interface RecommendationMachineSpecific extends ResultMessages {
+  readonly status: 'machine-specific';
+  readonly machineProfile: MachineProfile;
+  readonly settings: readonly MachineSpecificSetting[];
+  readonly sourceContext: readonly string[];
 }
 
 export interface RecommendationInvalidInput extends ResultMessages {
@@ -78,4 +91,5 @@ export type RecommendationResult<R extends WeldingRecord> =
   | RecommendationGap<R>
   | RecommendationAmbiguous<R>
   | RecommendationUnsupported
+  | RecommendationMachineSpecific
   | RecommendationInvalidInput;

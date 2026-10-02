@@ -3,7 +3,9 @@ import { PageHeader } from '../components/PageHeader';
 import { formatNumber, formatThickness, formatThicknessRange, LPM_PER_CFH, mmToInches } from '../features/welding/conversions';
 import { MATERIAL_SHORT_LABELS, POSITION_LABELS } from '../features/welding/data/catalog';
 import { registry } from '../features/welding/data/registry';
+import { LANL_PROCEDURE_REFERENCES } from '../features/welding/data/procedureReferences';
 import { getAnyProcessDefinition } from '../features/welding/processes';
+import { sourceProvenanceItems } from '../features/welding/presentation';
 import { commonThicknessesMm } from '../features/welding/thicknessPresets';
 import type { UnitSystem, WeldingRecord } from '../features/welding/types';
 
@@ -28,6 +30,7 @@ export function ReferencePage({ system }: { readonly system: UnitSystem }) {
           {records.map((record) => {
             const definition = getAnyProcessDefinition(record.process);
             const flow = definition?.outputs.find((o) => o.key === 'gasFlow')?.format(record, system);
+            const provenanceItems = sourceProvenanceItems(record);
             return (
               <li key={record.id} className="coverage__item">
                 <div className="coverage__head">
@@ -36,13 +39,70 @@ export function ReferencePage({ system }: { readonly system: UnitSystem }) {
                 </div>
                 <p>{coverageLine(record, system)}</p>
                 {flow && <p className="muted small">Gas flow: {flow}</p>}
-                <p className="muted small">
-                  Source: {record.provenance.source.publisher} — {record.provenance.source.document}
-                  {record.provenance.source.page ? `, p. ${record.provenance.source.page}` : ''}
-                </p>
+                {!record.provenance.verified && (
+                  <p className="muted small" role="note">
+                    Unverified sample data. Source details are hidden until verified.
+                  </p>
+                )}
+                {provenanceItems.length > 0 && (
+                  <dl className="summary reference-provenance">
+                    {provenanceItems.map((item) => (
+                      <div key={item.key} className="summary__row">
+                        <dt>{item.label}</dt>
+                        <dd>
+                          {item.href ? (
+                            <a href={item.href} target="_blank" rel="noopener noreferrer">
+                              {item.value}
+                            </a>
+                          ) : (
+                            item.value
+                          )}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
               </li>
             );
           })}
+        </ul>
+      </section>
+
+      <section className="card" aria-labelledby="procedure-references-title">
+        <h2 id="procedure-references-title" className="card__title">
+          Source-specific procedure references
+        </h2>
+        <p className="muted small">
+          These public LANL WPS documents are reference-only. They do not feed calculator recommendations and may require companion procedures or authorization.
+        </p>
+        <ul className="coverage">
+          {LANL_PROCEDURE_REFERENCES.map((procedure) => (
+            <li key={procedure.id} className="coverage__item">
+              <div className="coverage__head">
+                <strong>{procedure.process} · WPS {procedure.procedureNumber}</strong>
+                <span className="badge badge--warn">Reference only</span>
+              </div>
+              <p>{procedure.title} · {procedure.revision}</p>
+              <dl className="summary reference-provenance">
+                <div className="summary__row">
+                  <dt>Scope</dt>
+                  <dd><ul>{procedure.scope.map((item) => <li key={item}>{item}</li>)}</ul></dd>
+                </div>
+                <div className="summary__row">
+                  <dt>Use limits</dt>
+                  <dd><ul>{procedure.useRequirements.map((item) => <li key={item}>{item}</li>)}</ul></dd>
+                </div>
+                <div className="summary__row">
+                  <dt>Publisher</dt>
+                  <dd>Los Alamos National Laboratory</dd>
+                </div>
+                <div className="summary__row">
+                  <dt>Original WPS</dt>
+                  <dd><a href={procedure.sourceUrl} target="_blank" rel="noopener noreferrer">Open source PDF</a></dd>
+                </div>
+              </dl>
+            </li>
+          ))}
         </ul>
       </section>
 

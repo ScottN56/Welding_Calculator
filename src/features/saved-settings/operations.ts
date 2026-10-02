@@ -132,7 +132,7 @@ export function createSavedSetup(fields: NewSetupFields, id: string, now: Date):
     recommendation: fields.recommendation,
     adjusted: fields.adjusted,
     notes: fields.notes.slice(0, MAX_NOTES_LENGTH),
-    machineProfileId: null,
+    machineProfileId: fields.input.machineProfileId ?? null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };

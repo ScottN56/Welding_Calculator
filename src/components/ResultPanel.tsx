@@ -112,6 +112,39 @@ export function ResultPanel({ result, definition, input, system }: ResultPanelPr
         </section>
       );
 
+    case 'machine-specific':
+      return (
+        <section className="card card--empty" aria-live="polite">
+          <div className="result__header">
+            <h2 className="card__title">Machine-specific setting</h2>
+            <span className="badge badge--warn">Machine-specific</span>
+          </div>
+          <p>{result.machineProfile.manufacturer} {result.machineProfile.model}{result.machineProfile.family ? ` · ${result.machineProfile.family}` : ''}</p>
+          <ul className="notes">
+            {result.settings.map((setting) => (
+              <li key={setting.id}>
+                <strong>{setting.settingLabel}:</strong> <code>{setting.value}</code>
+                {setting.controlNames?.length ? ` · ${setting.controlNames.join(', ')}` : ''}
+                <span> · {setting.process} · {setting.provenance.source.document} · {setting.sourceManualId}</span>
+              </li>
+            ))}
+          </ul>
+          {result.sourceContext.length > 0 && (
+            <dl className="summary">
+              {result.sourceContext.map((field) => {
+                const separator = field.indexOf(': ');
+                const label = separator < 0 ? 'Source context' : field.slice(0, separator);
+                const value = separator < 0 ? field : field.slice(separator + 2);
+                return <div key={field} className="summary__row"><dt>{label}</dt><dd>{value}</dd></div>;
+              })}
+            </dl>
+          )}
+          <Warnings lines={result.warnings} />
+          <Explanation lines={result.explanation} />
+          <p className="source">Source values are literal machine controls, not universal voltage, amperage or wire-feed settings.</p>
+        </section>
+      );
+
     case 'gap':
       return (
         <section className="card card--empty" aria-live="polite">

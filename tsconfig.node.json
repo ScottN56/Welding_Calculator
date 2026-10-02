@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["vite.config.ts", "eslint.config.js", "capacitor.config.ts"]
+  "include": ["vite.config.ts", "eslint.config.js", "capacitor.config.ts", "scripts/welding-source-import/**/*.ts"]
 }

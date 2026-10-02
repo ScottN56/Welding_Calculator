@@ -6,16 +6,15 @@ import type { WeldingProcess } from '../welding/types';
  */
 export interface MachineProfile {
   readonly id: string;
-  /** User-facing name, e.g. "Shop MIG #2". */
-  readonly name: string;
-  readonly manufacturer: string;
+  readonly manufacturer: 'Miller' | 'Lincoln Electric' | 'ESAB' | string;
   readonly model: string;
+  readonly family?: string;
   readonly processes: readonly WeldingProcess[];
-  readonly voltageControl?: MachineControl;
-  readonly wireFeedControl?: MachineControl;
-  readonly notes: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
+  /** Official manual/source identity that establishes this profile. */
+  readonly sourceManualId: string;
+  readonly serialRange?: { readonly min?: string; readonly max?: string };
+  readonly revisionRange?: { readonly min?: string; readonly max?: string };
+  readonly notes?: string;
 }
 
 export type MachineControl =

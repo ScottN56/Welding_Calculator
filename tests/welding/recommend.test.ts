@@ -7,7 +7,8 @@ import {
 } from '../../src/features/welding/calculations';
 import { inchesToMm } from '../../src/features/welding/conversions';
 import { gmawDefinition } from '../../src/features/welding/processes/gmaw';
-import { bandedRecords, gmaw, input, METRIC, TEST_PROVENANCE } from './fixtures';
+import { normalizeRecord } from '../../src/features/welding/data/normalize';
+import { bandedRecords, gmaw, gmawSource, input, METRIC, TEST_PROVENANCE } from './fixtures';
 
 const UNVERIFIED = { verified: false, source: { publisher: 'x', document: 'y' } } as const;
 
@@ -87,6 +88,23 @@ describe('recommend: interpolation', () => {
     expect(result.sources.map((r) => r.id)).toEqual(['a', 'b']);
     expect(result.warnings).toContain(INTERPOLATION_WARNING);
     expect(result.explanation.join(' ')).toMatch(/50%/);
+  });
+
+  it('does not interpolate unless both records explicitly permit it', () => {
+    const permitted = [
+      gmaw({ id: 'a', thickness: { min: 2, max: 3, unit: 'mm' }, interpolation: 'linear' }),
+      gmaw({ id: 'b', thickness: { min: 5, max: 6, unit: 'mm' }, interpolation: 'prohibited' }),
+    ];
+    const result = recommend(gmawDefinition, permitted, input({ thicknessMm: 4 }), METRIC);
+    expect(result.status).toBe('gap');
+    expect(result.explanation.join(' ')).toMatch(/not explicitly permitted/);
+  });
+
+  it('normalizes verified source records to interpolation disabled by default', () => {
+    const source = gmawSource();
+    expect(source.provenance.verified).toBe(true);
+    expect(source.interpolation).toBeUndefined();
+    expect(normalizeRecord(source).interpolationPermitted).toBe(false);
   });
 
   it('leaves a field undefined if either neighbour lacks it', () => {

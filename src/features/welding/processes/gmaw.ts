@@ -7,7 +7,6 @@ import type { ProcessDefinition } from './types';
 
 export const gmawDefinition: ProcessDefinition<GmawRecord> = {
   process: 'GMAW',
-  available: true,
   consumableFields: [
     {
       key: 'wireClass',

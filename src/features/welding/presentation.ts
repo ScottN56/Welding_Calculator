@@ -10,6 +10,62 @@ export interface DisplayItem {
   readonly value: string | null;
 }
 
+export interface SourceProvenanceItem {
+  readonly key: string;
+  readonly label: string;
+  readonly value: string;
+  readonly href?: string;
+}
+
+function displayableMetadata(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed || /^(?:replace(?:\s|-)+with\b|yyyy-mm-dd\b)/i.test(trimmed)) return undefined;
+  return trimmed;
+}
+
+function safeSourceUrl(value: string | undefined): string | undefined {
+  const candidate = displayableMetadata(value);
+  if (!candidate) return undefined;
+  try {
+    const url = new URL(candidate);
+    if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname || url.username || url.password) {
+      return undefined;
+    }
+    return url.href;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Metadata shown only after dataset provenance is verified. */
+export function sourceProvenanceItems(record: WeldingRecord): SourceProvenanceItem[] {
+  if (!record.provenance.verified) return [];
+
+  const source = record.provenance.source;
+  const items: SourceProvenanceItem[] = [];
+  const add = (key: string, label: string, value: string | undefined) => {
+    const displayValue = displayableMetadata(value);
+    if (displayValue) items.push({ key, label, value: displayValue });
+  };
+
+  add('publisher', 'Publisher / Manufacturer', source.publisher);
+  add('document', 'Document', source.document);
+  add('edition', 'Edition / Revision', source.edition);
+  add('publicationDate', 'Publication Date', source.publicationDate);
+  add('page', 'Page', source.page);
+  add('tableOrChart', 'Table / Chart', source.tableOrChart);
+
+  const href = safeSourceUrl(source.url);
+  if (href) items.push({ key: 'url', label: 'Source', value: 'View source', href });
+
+  add('accessedDate', 'Date Accessed', source.accessedDate);
+  add('sourceNotes', 'Source Notes', source.notes);
+  add('verifiedBy', 'Verified By', record.provenance.verifiedBy);
+  add('verifiedDate', 'Verification Date', record.provenance.verifiedDate);
+
+  return items;
+}
+
 export function primaryOutputs<R extends WeldingRecord>(definition: ProcessDefinition<R>, values: R, system: UnitSystem): DisplayItem[] {
   return definition.outputs
     .filter((o) => o.primary)

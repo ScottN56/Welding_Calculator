@@ -36,9 +36,15 @@ export interface SourceReference {
   /** Document title, chart name, or product data sheet. */
   readonly document: string;
   readonly edition?: string;
+  readonly publicationDate?: string;
   readonly page?: string;
+  readonly tableOrChart?: string;
   readonly url?: string;
+  readonly accessedDate?: string;
+  readonly notes?: string;
 }
+
+export type InterpolationPolicy = 'prohibited' | 'linear';
 
 export interface Provenance {
   readonly verified: boolean;

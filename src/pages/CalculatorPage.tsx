@@ -17,7 +17,9 @@ import {
   PROCESS_LABELS,
 } from '../features/welding/data/catalog';
 import { primaryOutputs } from '../features/welding/presentation';
-import { PROCESS_DEFINITIONS } from '../features/welding/processes';
+import { registry } from '../features/welding/data/registry';
+import { MACHINE_PROFILES } from '../features/machine-profiles/registry';
+import { getProcessStatus, PROCESS_DEFINITIONS } from '../features/welding/processes';
 import {
   ANY_OPTION,
   BASE_MATERIALS,
@@ -73,10 +75,37 @@ export function CalculatorPage({ calculator, preferences, onAcknowledgeSafety, s
             label="Process"
             value={input.process}
             options={WELDING_PROCESSES.map((p) => {
-              const available = PROCESS_DEFINITIONS[p]?.available ?? false;
-              return { value: p, label: PROCESS_LABELS[p].short, disabled: !available, ...(available ? {} : { hint: 'Soon' }) };
+              const status = getProcessStatus(
+                PROCESS_DEFINITIONS[p] !== undefined,
+                registry.forProcess(p).length,
+              );
+              const hint =
+                status === 'no-data'
+                  ? 'No verified data'
+                  : status === 'not-implemented'
+                    ? 'Coming soon'
+                    : undefined;
+              return {
+                value: p,
+                label: PROCESS_LABELS[p].short,
+                disabled: status === 'not-implemented',
+                ...(hint === undefined ? {} : { hint }),
+              };
             })}
             onChange={(process) => update({ process, consumable: {} })}
+          />
+
+          <SelectField
+            label="Machine Profile (optional)"
+            value={input.machineProfileId ?? 'generic'}
+            options={[
+              { value: 'generic', label: 'Generic / No specific machine' },
+              ...MACHINE_PROFILES.map((profile) => ({
+                value: profile.id,
+                label: `${profile.manufacturer} ${profile.model}${profile.family ? ` (${profile.family})` : ''}`,
+              })),
+            ]}
+            onChange={(machineProfileId) => update({ machineProfileId: machineProfileId === 'generic' ? null : machineProfileId })}
           />
 
           <SegmentedControl

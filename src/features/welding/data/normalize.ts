@@ -30,6 +30,7 @@ export function normalizeRecord(source: WeldingRecordSource): WeldingRecord {
     thicknessMm: lengthRangeMm(source.thickness),
     joints: source.joints,
     positions: source.positions,
+    interpolationPermitted: source.interpolation === 'linear',
     passes: source.passes && plainRange(source.passes),
     notes: source.notes ?? [],
     provenance: source.provenance,

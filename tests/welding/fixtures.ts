@@ -33,7 +33,7 @@ export function gmawSource(overrides: Partial<GmawRecordSource> = {}): GmawRecor
 }
 
 export function gmaw(overrides: Partial<GmawRecordSource> = {}): GmawRecord {
-  return normalizeRecord(gmawSource(overrides)) as GmawRecord;
+  return normalizeRecord(gmawSource({ interpolation: 'linear', ...overrides })) as GmawRecord;
 }
 
 /** Three bands on WIRE-A 0.9 mm: [2,3] [5,5] [8,10] mm, with gaps (3,5) and (5,8). */

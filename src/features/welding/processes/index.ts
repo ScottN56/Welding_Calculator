@@ -1,12 +1,18 @@
 import type { RecordByProcess, WeldingProcess, WeldingRecord } from '../types';
+import { fcawDefinition } from './fcaw';
 import { gmawDefinition } from './gmaw';
+import { gtawDefinition } from './gtaw';
+import { smawDefinition } from './smaw';
 import type { ProcessDefinition } from './types';
 
 type DefinitionMap = { readonly [P in WeldingProcess]?: ProcessDefinition<RecordByProcess[P]> };
 
-/** Add a process here once its definition and data exist. */
+/** Definitions remain unavailable until their process data and UI are ready. */
 export const PROCESS_DEFINITIONS: DefinitionMap = {
   GMAW: gmawDefinition,
+  FCAW: fcawDefinition,
+  GTAW: gtawDefinition,
+  SMAW: smawDefinition,
 };
 
 export function getProcessDefinition<P extends WeldingProcess>(
@@ -22,3 +28,5 @@ export function getAnyProcessDefinition(process: WeldingProcess): ProcessDefinit
 
 export type { ConsumableFieldDefinition, OutputFieldDefinition, ProcessDefinition } from './types';
 export { diameterKey, diameterFromKey } from './keys';
+export { getProcessStatus } from './availability';
+export type { ProcessStatus } from './availability';

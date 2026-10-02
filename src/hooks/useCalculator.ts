@@ -3,6 +3,7 @@ import { reconcileConsumables, recommend } from '../features/welding/calculation
 import { registry } from '../features/welding/data/registry';
 import { inchesToMm } from '../features/welding/conversions';
 import { getAnyProcessDefinition } from '../features/welding/processes';
+import { MACHINE_PROFILES, MACHINE_SPECIFIC_SETTINGS } from '../features/machine-profiles/registry';
 import type { CalculatorInput, RecommendOptions } from '../features/welding/types';
 
 export const INITIAL_INPUT: CalculatorInput = {
@@ -12,6 +13,7 @@ export const INITIAL_INPUT: CalculatorInput = {
   joint: 'butt',
   position: 'flat',
   consumable: {},
+  machineProfileId: null,
 };
 
 export function useCalculator(options: RecommendOptions) {
@@ -29,7 +31,9 @@ export function useCalculator(options: RecommendOptions) {
     [definition, records, draft, unitSystem, includeUnverified],
   );
   const result = useMemo(
-    () => recommend(definition, records, reconciled.input, { unitSystem, includeUnverified }),
+    () => recommend(definition, records, reconciled.input, {
+      unitSystem, includeUnverified, machineProfiles: MACHINE_PROFILES, machineSpecificSettings: MACHINE_SPECIFIC_SETTINGS,
+    }),
     [definition, records, reconciled.input, unitSystem, includeUnverified],
   );
 

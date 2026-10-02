@@ -1,6 +1,7 @@
 import type {
   BaseMaterial,
   GmawTransferMode,
+  InterpolationPolicy,
   JointType,
   Polarity,
   Provenance,
@@ -23,6 +24,7 @@ interface RecordSourceBase {
   readonly thickness: MeasuredRange<LengthUnit>;
   readonly joints: Applicability<JointType>;
   readonly positions: Applicability<WeldPosition>;
+  readonly interpolation?: InterpolationPolicy;
   readonly passes?: Range;
   readonly notes?: readonly string[];
   readonly provenance: Provenance;
@@ -91,6 +93,7 @@ interface NormalizedRecordBase {
   readonly thicknessMm: Range;
   readonly joints: Applicability<JointType>;
   readonly positions: Applicability<WeldPosition>;
+  readonly interpolationPermitted: boolean;
   readonly passes: Range | undefined;
   readonly notes: readonly string[];
   readonly provenance: Provenance;

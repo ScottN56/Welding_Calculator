@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run official welding-source discovery",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"welding:discover"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

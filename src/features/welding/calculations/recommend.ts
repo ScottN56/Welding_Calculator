@@ -7,13 +7,14 @@ import type {
   RecommendOptions,
   WeldingRecord,
 } from '../types';
-import { buildFilterSteps, runFilters } from './filters';
+import { applies, buildFilterSteps, runFilters } from './filters';
 import { interpolateRecords } from './interpolate';
 import { lookupThickness } from './thicknessLookup';
 import { missingConsumableErrors, validateBaseInput } from './validateInput';
 
-export const UNVERIFIED_WARNING =
-  'SAMPLE / UNVERIFIED DATA — these values are placeholders, not from a verified reference. Do not use them to weld.';
+export const UNVERIFIED_WARNING = __WELDING_INCLUDE_SAMPLE_DATA__
+  ? 'SAMPLE / UNVERIFIED DATA — these values are placeholders, not from a verified reference. Do not use them to weld.'
+  : 'Unverified welding data is unavailable in this build.';
 export const INTERPOLATION_WARNING =
   'Interpolated values are an estimate between two data points. Run test welds on scrap before production.';
 
@@ -22,7 +23,13 @@ export function differingFields<R extends WeldingRecord>(definition: ProcessDefi
   const first = records[0];
   if (!first) return [];
   return definition.categoricalFields
-    .filter(({ key }) => records.some((r) => r[key] !== first[key]))
+    .filter((field) =>
+      records.some((record) =>
+        field.equals
+          ? !field.equals(first, record)
+          : record[field.key] !== first[field.key],
+      ),
+    )
     .map(({ label }) => label);
 }
 
@@ -60,6 +67,56 @@ export function recommend<R extends WeldingRecord>(
   const range = (r: WeldingRecord) => formatThicknessRange(r.thicknessMm, system);
 
   const processRecords = records.filter((r) => r.process === definition.process);
+  const machineSettingsForProcess = (options.machineSpecificSettings ?? [])
+    .filter((setting) => setting.process === definition.process);
+  const selectedProfileId = input.machineProfileId ?? null;
+  const unavailableMachineSettings = () => ({
+    status: 'unsupported' as const, stage: 'machine-profile' as const,
+    explanation: [`${definition.process} data is machine-specific. Select a matching verified machine profile; no setting is shown without one.`],
+    warnings: [],
+  });
+  if (selectedProfileId) {
+    const profile = options.machineProfiles?.find((candidate) => candidate.id === selectedProfileId);
+    if (!profile) {
+      return {
+        status: 'unsupported', stage: 'machine-profile',
+        explanation: ['The selected machine profile is unavailable. No machine-specific setting is shown.'], warnings: [],
+      };
+    }
+    if (!profile.processes.includes(definition.process)) {
+      return {
+        status: 'unsupported', stage: 'machine-profile',
+        explanation: [`${profile.manufacturer} ${profile.model} is not documented for ${definition.process}. No settings are shown.`], warnings: [],
+      };
+    }
+    if (machineSettingsForProcess.length > 0) {
+      const matching = machineSettingsForProcess.filter((setting) =>
+        setting.provenance.verified && setting.machineProfileId === profile.id &&
+        setting.sourceManualId === profile.sourceManualId &&
+        setting.applicability.material === input.material &&
+        input.thicknessMm >= setting.applicability.thicknessMm.min && input.thicknessMm <= setting.applicability.thicknessMm.max &&
+        applies(setting.applicability.joints, input.joint) && applies(setting.applicability.positions, input.position) &&
+        Object.entries(setting.applicability.consumables ?? {}).every(([key, value]) => input.consumable[key] === value),
+      );
+      if (matching.length === 0) {
+        return {
+          status: 'unsupported', stage: 'machine-profile',
+          explanation: [`No verified ${profile.model} ${definition.process} machine-specific row matches this material, thickness, joint, position and reviewed consumable scope. Generic fallback is disabled.`],
+          warnings: [],
+        };
+      }
+      return {
+        status: 'machine-specific', machineProfile: profile, settings: matching,
+        sourceContext: [...new Set(matching.flatMap((setting) => setting.sourceContext.map((field) => `${field.label}: ${field.value}${field.unit ? ` ${field.unit}` : ''}`)))],
+        explanation: [`Matched the selected ${profile.manufacturer} ${profile.model} profile and its verified ${definition.process} source scope.`,
+          'Published machine controls remain literal and are not universal voltage, amperage or wire-feed values.'],
+        warnings: ['Verify the displayed manual, process and application context against the machine and applicable WPS.'],
+      };
+    }
+  } else if (processRecords.length === 0 && machineSettingsForProcess.length > 0) {
+    return unavailableMachineSettings();
+  }
+
   if (processRecords.length === 0) {
     return {
       status: 'unsupported',
@@ -149,6 +206,18 @@ export function recommend<R extends WeldingRecord>(
           explanation: [
             `${tLabel} falls between data ranges ${range(lower)} and ${range(upper)}.`,
             `Those ranges use a different ${mismatch.join(' / ')}, so values are not interpolated between them.`,
+          ],
+          warnings: [],
+        };
+      }
+      if (!lower.interpolationPermitted || !upper.interpolationPermitted) {
+        return {
+          status: 'gap',
+          lower,
+          upper,
+          explanation: [
+            `${tLabel} falls between data ranges ${range(lower)} and ${range(upper)}.`,
+            'Interpolation is not explicitly permitted for both reference records, so no settings are calculated.',
           ],
           warnings: [],
         };

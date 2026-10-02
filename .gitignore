@@ -4,3 +4,8 @@ dist
 .DS_Store
 coverage
 .vite
+.welding-source-staging/
+source-input/
+.env
+.env.*
+!.env.example
